@@ -1,0 +1,28 @@
+{
+  "name": "wxm-scripts",
+  "version": "1.0.0",
+  "main": "claimRewards.js",
+  "license": "MIT",
+  "scripts": {
+    "claim-dev": "ts-node-dev --respawn src/claimRewards.ts",
+    "upload-dev": "ts-node-dev --respawn src/uploadCurrent.ts ",
+    "daily-dev": "ts-node-dev --respawn src/uploadDaily.ts ",
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@tsconfig/node18": "^1.0.1",
+    "@types/node": "^18.15.3",
+    "@types/pg": "^8.11.5",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.0.2"
+  },
+  "dependencies": {
+    "@paraswap/sdk": "^6.9.1",
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "ethers": "^5.7.1",
+    "path": "^0.12.7",
+    "tslib": "^2.7.0",
+    "winston": "^3.13.0"
+  }
+}
