@@ -26,10 +26,14 @@ SOURCE_TOKEN_ADDRESS=0xb6093b61544572ab42a0e43af08abafd41bf25a6
 DESTINATION_TOKEN_ADDRESS=0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE
 DESTINATION_ADDRESS=[ADDRESS WHERE YOU WANT THE ETH TO BE SENT]
 WALLET_PK=[PRIVATE KEY]
+TELEGRAM_CHAT_ID=[EMPTY YOU DO NOT RECEIVE NOTIFICATIONS]
+TELEGRAM_BOT_TOKEN=[EMPTY YOU DO NOT RECEIVE NOTIFICATIONS]
 ```
 
 ## Claim rewards
 This script checks if there are any WXM rewards available to claim. If rewards are available, it executes the transaction to claim them. Additionally, it swaps WXM to ETH and sends the specified amount to a given address.
+
+You receive a notification if the process completes successfully
 
 ```bash
 yarn claim-dev

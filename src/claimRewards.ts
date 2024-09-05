@@ -1,4 +1,4 @@
-import { ethers } from "ethers";
+import { ethers, utils } from "ethers";
 import { config as dotenvConfig } from "dotenv";
 import { resolve } from "path";
 import axios, { all } from 'axios';
@@ -31,6 +31,8 @@ const privateKey = process.env.WALLET_PK!;
 const sourceTokenAddress = process.env.SOURCE_TOKEN_ADDRESS!;
 const destinationTokenAddress = process.env.DESTINATION_TOKEN_ADDRESS!;
 const destinationAddress = process.env.DESTINATION_ADDRESS;
+const telegramChatId = process.env.TELEGRAM_CHAT_ID;
+const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
 
 const provider = new ethers.providers.JsonRpcProvider(providerURL);
 const wallet = new ethers.Wallet(privateKey, provider);
@@ -59,6 +61,18 @@ async function getWXMBalance(): Promise<ethers.BigNumberish> {
         console.error('Error fetching token balance:', error);
         throw error;
     }
+}
+
+function sendTelegramMessage(message: string) {
+    const url = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`;
+    axios.post(url, {
+        chat_id: telegramChatId,
+        text: message
+    }).then(response => {
+        console.log('Telegram message sent:', response.data);
+    }).catch(error => {
+        console.error('Error sending Telegram message:', error.message);
+    });
 }
 
 async function swap(amount: ethers.BigNumberish) {
@@ -121,8 +135,14 @@ async function swap(amount: ethers.BigNumberish) {
         gasPrice: gasPrice
     };
 
-    const txr = await wallet.sendTransaction(transaction);
-    console.log(txr);
+    const tx = await wallet.sendTransaction(transaction);
+    console.log('Paraswap transaction sent:', tx.hash);
+    const receipt = await tx.wait();
+    console.log("Paraswap transaction confirmed:", receipt.transactionHash);
+
+    if (telegramChatId && telegramBotToken) {
+        sendTelegramMessage(`Swapped ${amount} WXM to ${priceRoute.destAmount} ETH with tx hash: ${tx.hash}`);
+    }
 }
 
 async function main() {
@@ -134,7 +154,7 @@ async function main() {
         console.log(rewardsData);
     } catch (error: any) {
         console.error('Error fetching rewards data:', error.response.status, error.message);
-        return
+        return;
     }
 
     if (rewardsData.available !== "0") { // Check if there are available rewards to claim
@@ -173,6 +193,6 @@ async function main() {
     }
 }
 
-// execute the main function every 30 minutes
-setInterval(main, 30 * 60 * 1000);
+// execute the main function every 60 minutes
+setInterval(main, 60 * 60 * 1000);
 main();
