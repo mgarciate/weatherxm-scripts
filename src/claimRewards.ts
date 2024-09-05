@@ -141,7 +141,7 @@ async function swap(amount: ethers.BigNumberish) {
     console.log("Paraswap transaction confirmed:", receipt.transactionHash);
 
     if (telegramChatId && telegramBotToken) {
-        sendTelegramMessage(`Swapped ${amount} WXM to ${priceRoute.destAmount} ETH with tx hash: ${tx.hash}`);
+        sendTelegramMessage(`Swapped ${ethers.utils.formatUnits(amount, 18)} WXM to ${ethers.utils.formatUnits(priceRoute.destAmount, 18)} ETH with tx hash: https://arbiscan.io/tx/${tx.hash}`);
     }
 }
 
