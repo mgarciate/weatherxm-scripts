@@ -64,12 +64,34 @@ interface WeatherResponse {
     };
 }
 
-dotenvConfig({ path: resolve(__dirname, "../.env") });
+dotenvConfig({ path: resolve(__dirname, "../secret.env") });
 var token = process.env.WXM_TOKEN;
 var refreshToken = process.env.WXM_REFRESH_TOKEN;
-const deviceId: string = process.env.WXM_DEVICE_ID!;
-const wundergroundStationId: string = process.env.WUNDERGROUND_STATION_ID!;
-const wundergroundStationPassword: string = process.env.WUNDERGROUND_STATION_PASSWORD!;
+const username = process.env.WXM_USERNAME;
+const password = process.env.WXM_PASSWORD;
+const deviceId = process.env.WXM_DEVICE_ID;
+const wundergroundStationId = process.env.WUNDERGROUND_STATION_ID;
+const wundergroundPassword = process.env.WUNDERGROUND_STATION_PASSWORD;
+
+async function login(): Promise<boolean> {
+    try {
+        console.log('Attempting to login with username:', username);
+        const loginResponse = await axios.post('https://api.weatherxm.com/api/v1/auth/login', {
+            username: username,
+            password: password
+        });
+
+        token = loginResponse.data.token;
+        refreshToken = loginResponse.data.refreshToken;
+        console.log('Login successful. New token obtained.');
+        console.log('New token2:', token);
+        console.log('Token refresh2:', refreshToken);
+        return true;
+    } catch (loginError: any) {
+        console.error('Error during login:', loginError.response?.status, loginError.message);
+        return false;
+    }
+}
 
 async function fetchWeatherData(): Promise<WeatherResponse | null> {
     const url = `https://api.weatherxm.com/api/v1/me/devices/${deviceId}`;
@@ -91,14 +113,25 @@ async function fetchWeatherData(): Promise<WeatherResponse | null> {
                 const refreshResponse = await axios.post('https://api.weatherxm.com/api/v1/auth/refresh', {
                     refreshToken: refreshToken
                 });
+
                 token = refreshResponse.data.token; // Update tokens
                 refreshToken = refreshResponse.data.refreshToken;
-                console.log('New token:', token);
-                console.log('Token refresh:', refreshToken);
+                console.log('New token1:', token);
+                console.log('Token refresh1:', refreshToken);
                 return await fetchWeatherData();
             } catch (refreshError: any) {
-                console.error('Error refreshing token:', refreshError.response.status, refreshError.message);
-                return null;
+                console.error('Error refreshing token:', refreshError.response?.status, refreshError.message);
+                console.log('Attempting to login to get new tokens...');
+                
+                // Try to login to get new tokens
+                const loginSuccess = await login();
+                if (loginSuccess) {
+                    // Retry fetching weather data with new tokens
+                    return await fetchWeatherData();
+                } else {
+                    console.error('Login failed. Cannot fetch weather data.');
+                    return null;
+                }
             }
         } else {
             console.error('Error fetching weather data:', error.response.status, error.message);
@@ -124,10 +157,10 @@ async function uploadWeatherData(data: WeatherResponse['current_weather']) {
 
     const params = {
         ID: wundergroundStationId,
-        PASSWORD: wundergroundStationPassword,
-        dateutc: formatDateUtc(data.timestamp), // Format: "yyyy-MM-dd HH:mm:ss"
+        PASSWORD: wundergroundPassword,
+        dateutc: formatDateUtc(data.timestamp),
         tempf: (data.temperature * 9/5) + 32,  // Convert Celsius to Fahrenheit
-        dewptf: (data.dew_point * 9/5) + 32,  // Convert Celsius to Fahrenheit
+        dewptf: (data.dew_point * 9/5) + 32,  // Assuming dew point is same as temperature
         humidity: data.humidity,
         baromin: data.pressure * 0.02953,  // Convert hPa to inHg
         rainin: data.precipitation * 0.0393701,  // Convert mm/h to in/h
@@ -151,6 +184,10 @@ async function uploadWeatherData(data: WeatherResponse['current_weather']) {
 }
 
 async function main() {
+    if (!deviceId) {
+        console.error('WXM_DEVICE_ID not found in environment variables');
+        return;
+    }
     const weatherData = await fetchWeatherData();
 
     if (weatherData && weatherData.current_weather) {
